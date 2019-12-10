@@ -1,4 +1,4 @@
-//////////////////////////////////////////////
+﻿//////////////////////////////////////////////
 //       Concept:
 //      *use man diff*
 //      do ls for directory 1
@@ -19,8 +19,6 @@
 #include <pwd.h>
 #include  <grp.h>
 #include <time.h>
-
-
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdbool.h>
@@ -33,7 +31,9 @@ char* uid_to_name(uid_t);
 char* gid_to_name(gid_t);
 void do_struct_sort(char[], bool reverse);
 void print();
-void type_group();
+void type_group(const char* s2);
+char* merge_path(const char* s1, const char* s2);
+void move_file(char* source, const char* dest, const char* s2);
 
 #define SIZE 70
 
@@ -56,7 +56,14 @@ struct stat st = { 0 };
 
 int main(int ac, char* argv[])
 {
-
+	//const char* pt =  path();
+	char pt[PATH_MAX];
+	if (getcwd(pt, sizeof(pt)) != NULL) {
+		//	printf("Current working dir: %s\n", s1);
+	}
+	else {
+		perror("getcwd() error");
+	}
 	do_struct(".");
 	print();
 	printf("\nDone! \n");
@@ -69,7 +76,7 @@ int main(int ac, char* argv[])
 	if (strcmp(argv[1], "type") == 0)
 	{
 		printf("\nType group option \n");
-		type_group();
+		type_group(pt);
 	}
 	else
 	printf("\nTo nie type \n");
@@ -94,30 +101,11 @@ int main(int ac, char* argv[])
 		}
 
 
-	if (argv[ac - 1][0] == '-')
-	{//printf("taaak\n");
-		if ((argv[ac - 1][1] == 's'))
-		{
-			compares();
-		}
-		if ((argv[ac - 1][1] == 'i'))
-		{
-			comparei();
-		}
-		if ((argv[ac - 1][1] == 'p'))
-			comparep();
-		if ((argv[ac - 1][1] == 't'))
-			comparet();
-		if ((argv[ac - 1][1] == 'u'))
-			compareu();
-
-	}
 */
 	return 0;
 }
-void type_group()
+void type_group(const char* s2)
 {
-
 	//protect OUR program, don't move yourself!
 	int z, i, k,d;
 	char type[SIZE][10];
@@ -131,36 +119,143 @@ void type_group()
 		else {
 			for (i = 0; d1[z].filename[i] != '\0'; i++)
 			{
-				//printf("%d ", d1[z].filename[i]);
 				if (d1[z].filename[i] == '.')
 				{
 					d = 0;
+					type[z][d]='/';
+					d++;
 					printf("\ndot!!!! letter by letter = ");
 					for (k = i + 1; d1[z].filename[k] != '\0'; ++k)
 					{
-						if (d1[z].filename[k] == '.')
-						{
-							i++;
-						}
 						type[z][d] = d1[z].filename[k];
 						printf("%c ", type[z][d]);
 						d++;
 					}
-					type[z][d + 1] = '\0';
+					type[z][d] = '\0';
 					printf("\npo dot = %s", type[z]);
 				}
 
 			}
-			
-			if (stat("./September/ZOSIA1", &st) == -1) {
-				printf("make DIR!!\n");
-				mkdir("./September/%s", "ZOSIA1", 0700);
+			if (type[z][0] == '/')
+			{//printf("PATH ==== %s", merge_path(s2,type[z]));
+					const char* path = merge_path(s2, type[z]);
+					if (stat(path, &st) == -1) {
+						printf("error");
+						mkdir(path, 0700);
+					}
+
+					char* r_name = merge_path(s2, "/");
+					char* o_name = merge_path(r_name, d1[z].filename);
+					char* new_name = merge_path(path, "/");
+					char* new_name2 = merge_path(new_name, d1[z].filename);
+					printf("MOVE! old name = %s, new name = %s\n",  o_name, new_name2 );
+					//move_file(old_name, path , s2)
+					if (rename(o_name, new_name2) == 0)
+					{
+						printf("File renamed successfully.\n");
+					}
+					else
+					{
+						printf("Unable to rename files. Please check files exist and you have permissions to modify files.\n");
+					}
+				}
+			else 
+			{
+					const char* path = merge_path(s2, "programs");
+					if (stat(path, &st) == -1) {
+						printf("error");
+						mkdir(path, 0700);
+					}
+
+					char* r_name = merge_path(s2, "/");
+					char* o_name = merge_path(r_name, d1[z].filename);
+					char* new_name = merge_path(path, "/");
+					char* new_name2 = merge_path(new_name, d1[z].filename);
+					printf("MOVE! old name = %s, new name = %s\n", o_name, new_name2);
+					//move_file(old_name, path , s2)
+					if (rename(o_name, new_name2) == 0)
+					{
+						printf("File renamed successfully.\n");
+					}
+					else 
+					{
+						printf("Unable to rename files. Please check files exist and you have permissions to modify files.\n");
+					}
+
 			}
-			//execlp("mkdir","mkdir", type[z], NULL);
 			
 		}//end else
 	}
 }
+
+void move_file(char* source, const char* dest, const char* s2)
+{
+	printf("\n");
+	char* file = malloc(strlen(source) + 1);
+	char* location = malloc(strlen(dest) + 1);
+	char* path = malloc(strlen(s2) + 1);
+	/*const char* file = source;
+	const char* location = dest;
+	*/
+	
+	strcpy(location, dest);
+	//printf("skopieowane 1!\n");
+	strcpy(file,source);
+	strcpy(path, s2);
+	
+	printf("source = %s, destination = %s \n", file, location);
+	char newplace[50];
+
+	if (location[0] == '/')				//check to see if input is a path
+	{
+		strcat(location, "/");			//if argument is a Full Path, prepare to mv to end of path.
+		strcat(location, file);
+		if (rename(file, location) == 0)
+			printf("Successful\n");
+		else
+			printf("Error:\nDirectory not found file =%s, location = %s\n", file, location);
+	}
+	else
+	{
+		DIR* isD;
+		isD = opendir(location); 				// check if argument is a DIR in CWD
+
+		if (isD == NULL)
+		{
+			if (rename(file, location) != 0)
+				printf("Error: File not moved\n");
+			else
+				printf("Successful\n");
+		}
+		else
+		{
+			char* ptrL;
+			ptrL = getcwd(newplace, 50);		// get current working directory path 
+			strcat(newplace, "/");
+			strcat(newplace, location);			// attach mv location to path ptrL
+			strcat(newplace, "/");
+			strcat(newplace, file);				// keep original file name
+			if (rename(file, ptrL) != -1)
+				printf("Successful\n");
+			else
+				printf("Error:\nDirectory not found in CWD\n");
+			closedir(isD);
+		}
+	}
+
+
+}
+
+
+char* merge_path(const char* s1, const char* s2)
+{
+	char* result = malloc(strlen(s1) + strlen(s2) + 1); // +1 for the null-terminator
+	// in real code you would check for errors in malloc here
+	strcpy(result, s1);
+	strcat(result, s2);
+	return result;
+}
+ 
 
 void do_struct(char dirname[])
 {
@@ -265,7 +360,3 @@ char* gid_to_name(gid_t gid) {
 	else
 		return grp_ptr->gr_name;
 }
-
-
-
-
