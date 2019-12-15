@@ -1,5 +1,5 @@
 ﻿//////////////////////////////////////////////
-//       Concept:
+//      Concept:
 //   1. Create array of srtuctures to list all files
 //	 2. Traverse through them and check their type, date or first letter
 //   3. Create new directory with type date or first letter name(if doesn't exist)
