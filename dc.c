@@ -1,15 +1,10 @@
 ﻿//////////////////////////////////////////////
 //       Concept:
-//      *use man diff*
-//      do ls for directory 1
-//      do ls for directory 2
-//      compare them
-//
-// Basically when doing a directory comparison a file can have 1 of 4 statuses:
-//1. File in both directories, and the same
-//2. File in both directories, but different
-//3. File only in first directory
-//4. File only in second directory
+//   1. Create array of srtuctures to list all files
+//	 2. Traverse through them and check their type
+//   3. Create new directory with type name(if doesn't exist)
+//	 4. Move file to directory
+//  Warning! Do not move:  .  ..  PROGRAMNAME   PROGRAMNAMEC
 //////////////////////////////////////////////
 #include <stdio.h>
 #include <sys/stat.h>
@@ -32,10 +27,13 @@ char* gid_to_name(gid_t);
 void do_struct_sort(char[], bool reverse);
 void print();
 void type_group(const char* s2);
+void date_group(const char* s2);
 char* merge_path(const char* s1, const char* s2);
 void move_file(char* source, const char* dest, const char* s2);
 
 #define SIZE 70
+#define PROGRAMNAME "dc"
+#define PROGRAMNAMEC "dc.c"
 
 struct filestruct {
 
@@ -44,7 +42,7 @@ struct filestruct {
 	int st_nlink;
 	char uid[8];
 	long int st_size;
-	char time[12];
+	char time[30];
 	char filename[1024];
 
 };
@@ -78,6 +76,11 @@ int main(int ac, char* argv[])
 		printf("\nType group option \n");
 		type_group(pt);
 	}
+	else if (strcmp(argv[1], "date") == 0)
+	{
+		printf("\nDate group option, time = %c%c%c  cal = %s \n", d1[0].time[0], d1[0].time[1], d1[0].time[2], d1[0].time);
+		date_group(pt);
+	}
 	else
 	printf("\nTo nie type \n");
 	/*
@@ -104,15 +107,99 @@ int main(int ac, char* argv[])
 */
 	return 0;
 }
-void type_group(const char* s2)
+void date_group(const char* s2)
 {
 	//protect OUR program, don't move yourself!
 	int z, i, k,d;
+	char mnth[SIZE][6];
+	char year[SIZE][6];
+	for (z = 0; z < SIZE; z++)
+	{
+		if (d1[z].ino == 0) break;
+		if ((strcmp(d1[z].filename,"..") == 0) || (strcmp(d1[z].filename, ".")==0) || (strcmp(d1[z].filename,PROGRAMNAME) ==0) || (strcmp(d1[z].filename,PROGRAMNAMEC) == 0))
+		{
+			//don't move file
+		}
+		else {
+			//get Year
+			year[z][0] = '/';
+			year[z][1] = d1[z].time[20];
+			year[z][2] = d1[z].time[21];
+			year[z][3] = d1[z].time[22];
+			year[z][4] = d1[z].time[23];
+			year[z][5] = '\0';
+			printf("YEAR = %s \n", year[z]);
+			//create Directory
+			const char* path = merge_path(s2, year[z]);
+			if (stat(path, &st) == -1) {
+				mkdir(path, 0700);
+			}
+
+			mnth[z][0] = '/';
+			mnth[z][1] = d1[z].time[4];
+			mnth[z][2] = d1[z].time[5];
+			mnth[z][3] = d1[z].time[6];
+			mnth[z][4] = '\0';
+			printf("MONTH = %s \n", mnth[z]);
+			const char* path2 = merge_path(path, mnth[z]);
+			if (stat(path2, &st) == -1) {
+				mkdir(path2, 0700);
+			}
+
+			//move file
+			char* r_name = merge_path(s2, "/");
+			char* o_name = merge_path(r_name, d1[z].filename);
+
+			char* new_name = merge_path(path2, "/");
+			char* new_name2 = merge_path(new_name, d1[z].filename);
+			printf("MOVE! old name = %s, new name = %s\n", o_name, new_name2);
+
+			if (rename(o_name, new_name2) == 0)
+			{
+				printf("File renamed successfully.\n");
+			}
+			else
+			{
+				printf("Unable to rename files. Please check files exist and you have permissions to modify files.\n");
+			}
+		/*	{//if type of file was given after dot in filename field
+				//create directories
+					const char* path = merge_path(s2, type[z]);
+					if (stat(path, &st) == -1) {
+						printf("error");
+						mkdir(path, 0700);
+					}
+					//move file
+					char* r_name = merge_path(s2, "/");
+					char* o_name = merge_path(r_name, d1[z].filename);
+					char* new_name = merge_path(path, "/");
+					char* new_name2 = merge_path(new_name, d1[z].filename);
+					printf("MOVE! old name = %s, new name = %s\n",  o_name, new_name2 );
+					
+					if (rename(o_name, new_name2) == 0)
+					{
+						printf("File renamed successfully.\n");
+					}
+					else
+					{
+						printf("Unable to rename files. Please check files exist and you have permissions to modify files.\n");
+					}
+				}*/
+
+			
+		}//end else
+	}
+}
+
+void type_group(const char* s2)
+{
+	//protect OUR program, don't move yourself!
+	int z, i, k, d;
 	char type[SIZE][10];
 	for (z = 0; z < SIZE; z++)
 	{
 		if (d1[z].ino == 0) break;
-		if ((strcmp(d1[z].filename,"..") == 0) || (strcmp(d1[z].filename, ".")==0) || (strcmp(d1[z].filename,"dc.c") ==0) || (strcmp(d1[z].filename,"dc") == 0))
+		if ((strcmp(d1[z].filename, "..") == 0) || (strcmp(d1[z].filename, ".") == 0) || (strcmp(d1[z].filename, PROGRAMNAME) == 0) || (strcmp(d1[z].filename, PROGRAMNAMEC) == 0))
 		{
 			//don't move file
 		}
@@ -122,7 +209,7 @@ void type_group(const char* s2)
 				if (d1[z].filename[i] == '.')
 				{
 					d = 0;
-					type[z][d]='/';
+					type[z][d] = '/';
 					d++;
 					printf("\ndot!!!! letter by letter = ");
 					for (k = i + 1; d1[z].filename[k] != '\0'; ++k)
@@ -137,57 +224,57 @@ void type_group(const char* s2)
 
 			}
 			if (type[z][0] == '/')
-			{//printf("PATH ==== %s", merge_path(s2,type[z]));
-					const char* path = merge_path(s2, type[z]);
-					if (stat(path, &st) == -1) {
-						printf("error");
-						mkdir(path, 0700);
-					}
-
-					char* r_name = merge_path(s2, "/");
-					char* o_name = merge_path(r_name, d1[z].filename);
-					char* new_name = merge_path(path, "/");
-					char* new_name2 = merge_path(new_name, d1[z].filename);
-					printf("MOVE! old name = %s, new name = %s\n",  o_name, new_name2 );
-					//move_file(old_name, path , s2)
-					if (rename(o_name, new_name2) == 0)
-					{
-						printf("File renamed successfully.\n");
-					}
-					else
-					{
-						printf("Unable to rename files. Please check files exist and you have permissions to modify files.\n");
-					}
+			{//if type of file was given after dot in filename field
+				//create directories
+				const char* path = merge_path(s2, type[z]);
+				if (stat(path, &st) == -1) {
+					mkdir(path, 0700);
 				}
-			else 
-			{
-					const char* path = merge_path(s2, "programs");
-					if (stat(path, &st) == -1) {
-						printf("error");
-						mkdir(path, 0700);
-					}
+				//move file
+				char* r_name = merge_path(s2, "/");
+				char* o_name = merge_path(r_name, d1[z].filename);
+				char* new_name = merge_path(path, "/");
+				char* new_name2 = merge_path(new_name, d1[z].filename);
+				printf("MOVE! old name = %s, new name = %s\n", o_name, new_name2);
 
-					char* r_name = merge_path(s2, "/");
-					char* o_name = merge_path(r_name, d1[z].filename);
-					char* new_name = merge_path(path, "/");
-					char* new_name2 = merge_path(new_name, d1[z].filename);
-					printf("MOVE! old name = %s, new name = %s\n", o_name, new_name2);
-					//move_file(old_name, path , s2)
-					if (rename(o_name, new_name2) == 0)
-					{
-						printf("File renamed successfully.\n");
-					}
-					else 
-					{
-						printf("Unable to rename files. Please check files exist and you have permissions to modify files.\n");
-					}
+				if (rename(o_name, new_name2) == 0)
+				{
+					printf("File renamed successfully.\n");
+				}
+				else
+				{
+					printf("Unable to rename files. Please check files exist and you have permissions to modify files.\n");
+				}
+			}
+			else
+			{
+				//create directory for programs
+				const char* path = merge_path(s2, "/programs");
+				if (stat(path, &st) == -1) {
+					printf("error");
+					mkdir(path, 0700);
+				}
+				//move file
+				char* r_name = merge_path(s2, "/");
+				char* o_name = merge_path(r_name, d1[z].filename);
+				char* new_name = merge_path(path, "/");
+				char* new_name2 = merge_path(new_name, d1[z].filename);
+				printf("MOVE! old name = %s, new name = %s\n", o_name, new_name2);
+
+				if (rename(o_name, new_name2) == 0)
+				{
+					printf("File renamed successfully.\n");
+				}
+				else
+				{
+					printf("Unable to rename files. Please check files exist and you have permissions to modify files.\n");
+				}
 
 			}
-			
+
 		}//end else
 	}
 }
-
 void move_file(char* source, const char* dest, const char* s2)
 {
 	printf("\n");
@@ -308,7 +395,7 @@ void get_file_info(char* filename, struct stat* info_p, int i) {
 		d1[i].st_nlink = (int)info_p->st_nlink;
 		strcpy(d1[i].uid, uid_to_name(info_p->st_uid));
 		d1[i].st_size = (long)info_p->st_size;
-		strcpy(d1[i].time, 4 + ctime(&info_p->st_mtime));
+		strcpy(d1[i].time, ctime(&info_p->st_mtime));
 		 //        printf("%s ", d1[i].time );
 	   //
 		strcpy(d1[i].filename, filename);
