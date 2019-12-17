@@ -120,6 +120,7 @@ int main(int ac, char* argv[])
 
 	return 0;
 }
+
 void rebDirCont(char dirname[])
 {
 	DIR* dir_ptr;
@@ -572,3 +573,4 @@ char* gid_to_name(gid_t gid) {
 	else
 		return grp_ptr->gr_name;
 }
+
