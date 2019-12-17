@@ -97,7 +97,7 @@ int main(int ac, char* argv[])
 	{
 		printf("\n no arguments,  Deletion of directories");
 		getPathTo( get_inode(".") );
-	//printf("Initial path : %s\n", initial_path);
+		//printf("Initial path : %s\n", initial_path);
 		rebDirCont(".");
 	}
 	if (strcmp(argv[1], "type") == 0)
@@ -229,8 +229,9 @@ void getPathTo(ino_t this_inode)
 		inum_to_name(this_inode, its_name, BUFSIZ); 	// Get its name
 
 		my_inode = get_inode(".");			// Print head
+		printf("%s", its_name);			// now print name of this
 		getPathTo(my_inode);			// Recursively
-		//printf("/%s", its_name);			// now print name of this
+		printf("/%s", its_name);			// now print name of this
 		strcat(initial_path, "/");
 		strcat(initial_path, its_name);
 		chdir(its_name);
@@ -497,14 +498,16 @@ void do_struct(char dirname[])
 		fprintf(stderr, "ls1: cannot open %s\n", dirname);
 	else
 	{
-		chdir(dirname);
+		if( strcmp(dirname, ".") != 0)
+			chdir(dirname);
 		while ((direntp = readdir(dir_ptr)) != NULL)
 		{
 			dostat(direntp->d_name, i);
 			i++;
 		}
 		closedir(dir_ptr);
-		chdir("..");
+		if( strcmp(dirname, ".") != 0)
+			chdir("..");
 	}
 }
 
