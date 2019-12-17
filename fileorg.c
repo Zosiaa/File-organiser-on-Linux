@@ -83,8 +83,51 @@ struct stat st = { 0 };
 
 int main(int ac, char* argv[])
 {
-	//get path to current directory
 	char pt[PATH_MAX];
+	int i=1, j=0;
+	int op_alpha=0, op_type=0, op_date=0, op_rmdir=0;
+	for( i=1; i<ac; i++ )
+	{
+		if( strncmp(argv[i], "-", strlen("-")) == 0)
+		{
+			
+			for( j=1; j<strlen(argv[i]); j++)
+			{
+				switch (argv[i][j])
+				{
+					case 'a':
+						op_alpha=1;
+						break;
+					case 't':
+						op_type=1;
+						break;
+					case 'd':
+						op_date=1;
+						break;
+					case 'D':
+						op_rmdir=1;
+						break;
+					default:
+						printf("%c is not a valid option\n", argv[i][j]);
+						exit(1);
+						break;
+				}
+			}
+		}
+	}
+
+	if( op_alpha + op_type + op_date > 1)
+	{
+		fprintf(stderr, "Error with the options, you have to choose only one among -a -t and -d");
+		exit(1);
+	}
+	
+	/*else if ( op_alpha + op_type + op_date == 0)
+	{
+		printf("If you want to move your files you have to indicate an option among -a -t and -d");
+	}*/
+
+	//get path to current directory
 	if (getcwd(pt, sizeof(pt)) != NULL) {
 	}
 	else {
@@ -93,33 +136,33 @@ int main(int ac, char* argv[])
 	do_struct(".");
 
 	// arguments' options
-	if (ac == 1)
+	if ( op_rmdir == 1)
 	{
-		printf("\n no arguments,  Deletion of directories");
+		printf("Deletion of directories\n");
 		getPathTo( get_inode(".") );
 		//printf("Initial path : %s\n", initial_path);
 		rebDirCont(".");
 	}
-	if (strcmp(argv[1], "type") == 0)
+	if ( op_type == 1 )
 	{
 		printf("\nType group option \n");
 		type_group(pt);
 	}
-	else if (strcmp(argv[1], "date") == 0)
+	else if ( op_date == 1 )
 	{
 		printf("\nDate group option \n");
 		date_group(pt);
 	}
-	else if (strcmp(argv[1], "alpha") == 0)
+	else if (op_alpha == 1)
 	{
 		printf("\nAlphabetically group option \n");
 		alpha_group(pt);
 	}
-	else
-		printf("\nWrong arguments! use: type, data, alpha \n");
-
 	return 0;
 }
+
+
+	
 
 void rebDirCont(char dirname[])
 {
@@ -144,6 +187,8 @@ void rebDirCont(char dirname[])
 				//printf("%s\n", direntp->d_name);
 				deepness++;
 				rebDirCont(direntp->d_name);
+				//printf("Suppress : %s\n", direntp->d_name);
+				rmdir(direntp->d_name);
 			}
 			else if (strcmp(direntp->d_name, "..") != 0 && strcmp(direntp->d_name, ".") != 0)
 			{
@@ -151,9 +196,9 @@ void rebDirCont(char dirname[])
 				//if( strcmp(temp_path, initial_path) == 0)
 				if (deepness == 0)
 					continue;
-				printf("%s\n", direntp->d_name);
+				//printf("file to be moved : %s\n", direntp->d_name);
 				getPathToS(get_inode("."));
-				printf("%s\n", temp_path);
+				//printf("%s\n", temp_path);
 				//rename :
 				bzero(oldpath, strlen(oldpath));
 				bzero(newpath, strlen(newpath));
@@ -163,7 +208,7 @@ void rebDirCont(char dirname[])
 				strcat(newpath, initial_path);
 				strcat(newpath, "/");
 				strcat(newpath, direntp->d_name);
-				printf("Oldpath : %s\nNewpath : %s\n", oldpath, newpath);
+				//printf("Oldpath : %s\nNewpath : %s\n", oldpath, newpath);
 				if (rename(oldpath, newpath) == -1)
 					perror("rename");
 			}
@@ -229,9 +274,9 @@ void getPathTo(ino_t this_inode)
 		inum_to_name(this_inode, its_name, BUFSIZ); 	// Get its name
 
 		my_inode = get_inode(".");			// Print head
-		printf("%s", its_name);			// now print name of this
+		//printf("%s", its_name);			// now print name of this
 		getPathTo(my_inode);			// Recursively
-		printf("/%s", its_name);			// now print name of this
+		//printf("/%s", its_name);			// now print name of this
 		strcat(initial_path, "/");
 		strcat(initial_path, its_name);
 		chdir(its_name);
